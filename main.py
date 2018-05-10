@@ -8,23 +8,27 @@ from skimage.util import img_as_ubyte
 from skimage.filters import gaussian
 from skimage.morphology import *
 from skimage.filters import frangi, rank, threshold_mean
+from sklearn.metrics import confusion_matrix, accuracy_score, roc_curve
 
 imagePath = "stare-images"
+imageExpertPath = "stare-images-expert"
 
 #----------------------------------------
 filesList = listdir(imagePath)
+filesExpertList = listdir(imageExpertPath)
 for i in range(len(filesList)):
-    filesList[i] = os.path.join(imagePath,filesList[i])
+    filesList[i] = os.path.join(imagePath, filesList[i])
+    filesExpertList[i] = os.path.join(imageExpertPath, filesExpertList[i])
 
-print(filesList)
-originalImage = io.imread(filesList[2])
+imageIndex = 2
+originalImage = io.imread(filesList[imageIndex])
+expertImage = io.imread(filesExpertList[imageIndex])
 greenImage = originalImage.copy()
 greenImage[:,:,0] = 0
 greenImage[:,:,2] = 0
 
-
 image = color.rgb2gray(greenImage)
-image2 = image.copy()
+
 for i in range(len(image)):
     for j in range(len(image[i])):
         if image[i][j] > 0.5:
@@ -50,15 +54,28 @@ imgFrangi = frangi(filteredImageGaussian, scale_range=(1, 4), scale_step=1, beta
 thresh = threshold_mean(imgFrangi)
 binary = imgFrangi > thresh
 
+finalImage = img_as_ubyte(binary)
+
 fig, (ax0, ax1) = plt.subplots(nrows=2,
                                     ncols=2,
                                     sharex=True,
                                     sharey=True)
 
-ax0[0].imshow(image2, cmap="gray")
-ax0[1].imshow(filteredImageMorf, cmap="gray")
-ax1[0].imshow(imgFrangi, cmap="gray")
-ax1[1].imshow(binary, cmap="gray")
+#np.set_printoptions(threshold=np.nan)
+
+ax0[0].imshow(originalImage, cmap="gray")
+ax0[1].imshow(imgFrangi, cmap="gray")
+ax1[0].imshow(finalImage, cmap="gray")
+ax1[1].imshow(expertImage, cmap="gray")
+
+confusionMatrix = confusion_matrix(np.asarray(expertImage).flatten()/255, np.asarray(finalImage).flatten()/255)
+accuracy = accuracy_score(expertImage, finalImage)
+specificity, sensitivity, _ = roc_curve(np.asarray(expertImage).flatten()/255, np.asarray(finalImage).flatten()/255)
+
+print(confusionMatrix)
+print(accuracy)
+print(specificity)
+print(sensitivity)
 
 plt.show()
 
